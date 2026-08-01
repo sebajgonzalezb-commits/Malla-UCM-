@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Malla Curricular - Ingeniería Civil Industrial UCM</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #0f172a; padding: 20px; color: #f8fafc; margin: 0; }
+    
+    header { text-align: center; margin-bottom: 25px; }
+    header h1 { margin-bottom: 5px; color: #38bdf8; }
+    header p { color: #94a3b8; font-size: 0.95rem; }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: #1e293b;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      font-weight: bold;
+    }
+    .stat-card span { color: #38bdf8; }
+    
+    .malla-container {
+      display: flex;
+      gap: 15px;
+      overflow-x: auto;
+      padding: 10px 0 25px 0;
+    }
+
+    .semestre-col {
+      background: #1e293b;
+      border-radius: 10px;
+      min-width: 230px;
+      max-width: 230px;
+      flex-shrink: 0;
+      padding: 12px;
+      border: 1px solid #334155;
+    }
+
+    .semestre-col h3 {
+      text-align: center;
+      margin-top: 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #334155;
+      color: #38bdf8;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .ramo-card {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 4px solid #475569;
+      opacity: 0.5;
+      cursor: not-allowed;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .ramo-card .nombre { font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: #e2e8f0; }
+    .ramo-card .codigo { font-size: 0.7rem; color: #64748b; font-weight: bold; }
+    .ramo-card .sct { font-size: 0.7rem; color: #38bdf8; font-style: italic; }
+    .ramo-card .reqs { font-size: 0.7rem; color: #f87171; margin-top: 4px; }
+
+    .ramo-card.disponible {
+      opacity: 1;
+      border-left-color: #38bdf8;
+      cursor: pointer;
+      background: #1e293b;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    .ramo-card.disponible:hover { transform: translateY(-2px); border-left-width: 6px; }
+
+    .ramo-card.aprobado {
+      opacity: 1;
+      background: #064e3b;
+      border-left-color: #34d399;
+      cursor: pointer;
+    }
+    .ramo-card.aprobado .nombre { color: #a7f3d0; text-decoration: line-through; }
+    .ramo-card.aprobado .reqs { color: #34d399; }
+
+    .btn-reset {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-reset:hover { background-color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Malla Curricular - Ingeniería Civil Industrial (UCM)</h1>
+    <p>Plan Completo de Estudios</p>
+    
+    <div class="stats">
+      <div class="stat-card">Progreso: <span id="progresoPorcentaje">0%</span></div>
+      <div class="stat-card">Ramos Aprobados: <span id="progresoConteo">0/0</span></div>
+      <div class="stat-card">Créditos SCT: <span id="progresoSCT">0 / 0</span></div>
+    </div>
+
+    <button class="btn-reset" onclick="reiniciarProgreso()">Reiniciar Progreso</button>
+  </header>
+
+  <div class="malla-container" id="mallaContainer"></div>
+
+  <script>
+    // BASE DE DATOS INGENIERÍA CIVIL INDUSTRIAL UCM
+    const ramosData = [
+      // SEMESTRE 1
+      { id: "IND-111", nombre: "Álgebra", semestre: 1, sct: 8, prereqs: [] },
+      { id: "IND-112", nombre: "Cálculo I", semestre: 1, sct: 8, prereqs: [] },
+      { id: "IND-113", nombre: "Com. en Ingeniería", semestre: 1, sct: 5, prereqs: [] },
+      { id: "IND-114", nombre: "Introducción Ingeniería", semestre: 1, sct: 6, prereqs: [] },
+      { id: "IFG-100", nombre: "Inglés I", semestre: 1, sct: 3, prereqs: [] },
+
+      // SEMESTRE 2
+      { id: "IND-121", nombre: "Álgebra Lineal", semestre: 2, sct: 6, prereqs: ["IND-111"] },
+      { id: "IND-122", nombre: "Cálculo II", semestre: 2, sct: 8, prereqs: ["IND-112"] },
+      { id: "IND-123", nombre: "Química", semestre: 2, sct: 6, prereqs: ["IND-113"] },
+      { id: "IND-124", nombre: "Computac. I", semestre: 2, sct: 6, prereqs: ["IND-114"] },
+      { id: "IFG-200", nombre: "Inglés II", semestre: 2, sct: 5, prereqs: ["IFG-100"] },
+
+      // SEMESTRE 3
+      { id: "IND-213", nombre: "Prob. y Estadística", semestre: 3, sct: 6, prereqs: ["IND-121"] },
+      { id: "IND-211", nombre: "Cálculo III", semestre: 3, sct: 6, prereqs: ["IND-122"] },
+      { id: "IND-212", nombre: "Física I", semestre: 3, sct: 6, prereqs: ["IND-122", "IND-123"] },
+      { id: "IND-214", nombre: "Computac. II", semestre: 3, sct: 6, prereqs: ["IND-124"] },
+      { id: "IFG-300", nombre: "Inglés III", semestre: 3, sct: 5, prereqs: ["IFG-200"] },
+
+      // SEMESTRE 4
+      { id: "IND-223", nombre: "Análisis Multivariado", semestre: 4, sct: 6, prereqs: ["IND-213"] },
+      { id: "IND-221", nombre: "Ecuaciones Diferenciales", semestre: 4, sct: 6, prereqs: ["IND-211"] },
+      { id: "IND-222", nombre: "Física II", semestre: 4, sct: 6, prereqs: ["IND-212"] },
+      { id: "IND-334", nombre: "Módulo Integ. CC.BB.", semestre: 4, sct: 6, prereqs: ["IND-214"] },
+
+      // SEMESTRE 5
+      { id: "IND-311", nombre: "M. M. y Estocástico", semestre: 5, sct: 6, prereqs: ["IND-223"] },
+      { id: "IND-313", nombre: "Diseño Ind. y Dib. Téc.", semestre: 5, sct: 6, prereqs: ["IND-221"] },
+      { id: "IND-312", nombre: "Termodinám.", semestre: 5, sct: 6, prereqs: ["IND-222"] },
+      { id: "IND-314", nombre: "Adm. y RRHH", semestre: 5, sct: 5, prereqs: [] },
+      { id: "MFG-114", nombre: "Introducción a la Fe", semestre: 5, sct: 5, prereqs: [] },
+
+      // SEMESTRE 6
+      { id: "IND-322", nombre: "Logística", semestre: 6, sct: 6, prereqs: ["IND-311"] },
+      { id: "IND-321", nombre: "Elect. Ind. y Automatiz.", semestre: 6, sct: 6, prereqs: ["IND-313"] },
+      { id: "IND-324", nombre: "Contab. y Finanzas", semestre: 6, sct: 5, prereqs: [] },
+      { id: "IND-323", nombre: "Economía", semestre: 6, sct: 5, prereqs: ["IND-314"] },
+      { id: "IND-325", nombre: "Base de Datos", semestre: 6, sct: 4, prereqs: ["IND-214"] },
+      { id: "MFG-216", nombre: "Ética Cristiana", semestre: 6, sct: 5, prereqs: ["MFG-114"] },
+
+      // SEMESTRE 7
+      { id: "IND-411", nombre: "Investiga. Operaciones", semestre: 7, sct: 6, prereqs: ["IND-311"] },
+      { id: "IND-412", nombre: "Procesos Industriales", semestre: 7, sct: 6, prereqs: ["IND-313"] },
+      { id: "IND-414", nombre: "Emprend. y Creación Empresas", semestre: 7, sct: 6, prereqs: [] },
+      { id: "IND-413", nombre: "Ingeniería Económica", semestre: 7, sct: 6, prereqs: ["IND-323"] },
+      { id: "IND-415", nombre: "Metodología Investigac.", semestre: 7, sct: 6, prereqs: ["IND-334"] },
+
+      // SEMESTRE 8
+      { id: "IND-421", nombre: "Gestión de Operaciones", semestre: 8, sct: 6, prereqs: ["IND-411"] },
+      { id: "IND-422", nombre: "Control de Gestión", semestre: 8, sct: 4, prereqs: ["IND-412"] },
+      { id: "IND-423", nombre: "Des. Personal y Liderazgo", semestre: 8, sct: 5, prereqs: [] },
+      { id: "IND-424", nombre: "Creatividad Prototipaje Negocios", semestre: 8, sct: 5, prereqs: [] },
+      { id: "IND-425", nombre: "Módulo Integ. Lic. (Práctica 1)", semestre: 8, sct: 10, prereqs: ["IND-415"] },
+      { id: "CFG-1", nombre: "Certificación I", semestre: 8, sct: 5, prereqs: [] },
+
+      // SEMESTRE 9
+      { id: "IND-511", nombre: "Optimiza. Operaciones", semestre: 9, sct: 5, prereqs: ["IND-421"] },
+      { id: "IND-512", nombre: "Gestión Análisis Información", semestre: 9, sct: 5, prereqs: ["IND-422"] },
+      { id: "IND-513", nombre: "Formul. y Ev. de Proyectos", semestre: 9, sct: 5, prereqs: ["IND-413"] },
+      { id: "IND-514", nombre: "Propiedad Intelectual", semestre: 9, sct: 5, prereqs: ["IND-424"] },
+      { id: "IND-515", nombre: "Marketing Estrat. Comer. Tec.", semestre: 9, sct: 5, prereqs: ["IND-425"] },
+      { id: "CFG-2", nombre: "Certificación II", semestre: 9, sct: 5, prereqs: ["CFG-1"] },
+
+      // SEMESTRE 10
+      { id: "IND-521", nombre: "Gestión Calidad Prod.", semestre: 10, sct: 5, prereqs: ["IND-412"] },
+      { id: "IND-522", nombre: "Electivo Ev. Proyectos", semestre: 10, sct: 5, prereqs: ["CFG-2"] },
+      { id: "IND-523", nombre: "Plan. Estrat. y Gestión Negocios", semestre: 10, sct: 6, prereqs: [] },
+      { id: "IND-524", nombre: "Gestión Proyectos I+D+i+e", semestre: 10, sct: 5, prereqs: ["IND-514"] },
+      { id: "IND-525", nombre: "Inteligencia Comp. y Vig. Tec.", semestre: 10, sct: 5, prereqs: [] },
+      { id: "CFG-3", nombre: "Certificación III", semestre: 10, sct: 5, prereqs: ["CFG-2"] },
+
+      // SEMESTRE 11
+      { id: "IND-611", nombre: "Electivo G. Oper. y Proc. Indus.", semestre: 11, sct: 5, prereqs: ["IND-521"] },
+      { id: "IND-612", nombre: "Electivo Gestión Negocios", semestre: 11, sct: 5, prereqs: ["IND-522"] },
+      { id: "IND-613", nombre: "Módulo Integrador Formación Profesional", semestre: 11, sct: 18, prereqs: ["IND-523", "IND-524", "IND-525"] }
+    ];
+
+    let aprobados = JSON.parse(localStorage.getItem('malla_industrial_ucm_aprobados')) || [];
+    const totalSCTMalla = ramosData.reduce((acc, ramo) => acc + ramo.sct, 0);
+
+    function renderMalla() {
+      const container = document.getElementById('mallaContainer');
+      container.innerHTML = '';
+
+      // Ciclo hasta el Semestre 11
+      for (let s = 1; s <= 11; s++) {
+        const col = document.createElement('div');
+        col.className = 'semestre-col';
+        col.innerHTML = `<h3>Semestre ${s}</h3>`;
+
+        const ramosSemestre = ramosData.filter(r => r.semestre === s);
+
+        ramosSemestre.forEach(ramo => {
+          const card = document.createElement('div');
+          
+          const esAprobado = aprobados.includes(ramo.id);
+          const cumplenPrereqs = ramo.prereqs.every(reqId => aprobados.includes(reqId));
+
+          let estadoClase = 'bloqueado';
+          if (esAprobado) {
+            estadoClase = 'aprobado';
+          } else if (cumplenPrereqs) {
+            estadoClase = 'disponible';
+          }
+
+          card.className = `ramo-card ${estadoClase}`;
+          card.onclick = () => toggleAprobar(ramo.id, cumplenPrereqs);
+
+          let reqsTexto = '';
+          if (ramo.prereqs.length > 0) {
+            reqsTexto = `<div class="reqs">Req: ${ramo.prereqs.join(', ')}</div>`;
+          }
+
+          card.innerHTML = `
+            <div class="codigo">${ramo.id} <span class="sct">(${ramo.sct} SCT)</span></div>
+            <div class="nombre">${ramo.nombre}</div>
+            ${reqsTexto}
+          `;
+
+          col.appendChild(card);
+        });
+
+        container.appendChild(col);
+      }
+
+      actualizarMétricas();
+    }
+
+    function toggleAprobar(id, disponible) {
+      const index = aprobados.indexOf(id);
+
+      if (index > -1) {
+        aprobados.splice(index, 1);
+        limpiarDependientes();
+      } else if (disponible) {
+        aprobados.push(id);
+      } else {
+        return;
+      }
+
+      localStorage.setItem('malla_industrial_ucm_aprobados', JSON.stringify(aprobados));
+      renderMalla();
+    }
+
+    function limpiarDependientes() {
+      let cambio = true;
+      while (cambio) {
+        cambio = false;
+        aprobados = aprobados.filter(ramoId => {
+          const ramo = ramosData.find(r => r.id === ramoId);
+          const cumplenPrereqs = ramo.prereqs.every(reqId => aprobados.includes(reqId));
+          if (!cumplenPrereqs) {
+            cambio = true;
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+
+    function actualizarMétricas() {
+      const totalRamos = ramosData.length;
+      const totalAprobados = aprobados.length;
+      const porcentaje = Math.round((totalAprobados / totalRamos) * 100);
+
+      // Calcular SCT acumulados
+      const sctAprobados = ramosData
+        .filter(r => aprobados.includes(r.id))
+        .reduce((sum, r) => sum + r.sct, 0);
+
+      document.getElementById('progresoPorcentaje').innerText = `${porcentaje}%`;
+      document.getElementById('progresoConteo').innerText = `${totalAprobados}/${totalRamos}`;
+      // Usar la variable calculada para el total de la malla
+      document.getElementById('progresoSCT').innerText = `${sctAprobados} / ${totalSCTMalla}`;
+    }
+
+    function reiniciarProgreso() {
+      if (confirm('¿Deseas reiniciar todo tu progreso?')) {
+        aprobados = [];
+        localStorage.removeItem('malla_industrial_ucm_aprobados');
+        renderMalla();
+      }
+    }
+
+    renderMalla();
+  </script>
+
+</body>
+</html>
